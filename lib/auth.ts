@@ -116,7 +116,7 @@ export async function parseSessionToken(
 
 export async function setAuthCookie(userId: string): Promise<void> {
   const token = await createSessionToken(userId);
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
@@ -127,8 +127,8 @@ export async function setAuthCookie(userId: string): Promise<void> {
   });
 }
 
-export function clearAuthCookie(): void {
-  const cookieStore = cookies();
+export async function clearAuthCookie(): Promise<void> {
+  const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     sameSite: "lax",
@@ -146,6 +146,8 @@ export async function getSessionFromRequest(
 }
 
 export async function getSessionFromCookies(): Promise<SessionPayload | null> {
-  const token = cookies().get(SESSION_COOKIE_NAME)?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   return parseSessionToken(token);
 }
+
