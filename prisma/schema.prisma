@@ -1,0 +1,314 @@
+// This is your Prisma schema file.
+// Learn more in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SessionRole {
+  OWNER
+  STAFF
+}
+
+enum EmailTokenType {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+enum RewardItemType {
+  STANDARD
+  SIGNUP_GIFT
+}
+
+enum PurchaseSource {
+  MANUAL
+  POS
+}
+
+enum StandOrderStatus {
+  PENDING
+  EMAILED
+  FULFILLED
+  CANCELED
+}
+
+model OwnerUser {
+  id               String     @id @default(cuid())
+  email            String     @unique
+  emailVerifiedAt  DateTime?
+  passwordHash     String
+  name             String
+  phone            String?
+  staffPinHash     String
+  lastLocationId   String?
+
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  locations        OwnerLocation[]
+  sessions         AuthSession[]
+  emailTokens      EmailToken[]
+  invitesUsed      Invite[]   @relation("InviteUsedBy")
+  standOrders      StandOrder[]
+}
+
+model Location {
+  id                      String     @id @default(cuid())
+  ghlLocationId           String     @unique
+
+  // Human-friendly info (shown in the portal)
+  name                    String
+  addressLine1            String?
+  addressLine2            String?
+  city                    String?
+  state                   String?
+  postalCode              String?
+  country                 String?
+
+  // Optional: store the GHL custom field id for "AP | Points" once you know it
+  ghlPointsCustomFieldId  String?
+
+  isActive                Boolean    @default(true)
+
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
+
+  owners                  OwnerLocation[]
+  invites                 Invite[]
+  rewardItems              RewardItem[]
+  enrollments             Enrollment[]
+  standOrders             StandOrder[]
+
+  @@index([name])
+  @@index([isActive])
+}
+
+model OwnerLocation {
+  id         String   @id @default(cuid())
+  ownerId    String
+  locationId String
+
+  createdAt  DateTime @default(now())
+
+  owner      OwnerUser @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  location   Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, locationId])
+  @@index([locationId])
+}
+
+model Invite {
+  id            String    @id @default(cuid())
+  code          String    @unique
+
+  locationId    String
+  location      Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  // Prefill info (optional)
+  prefillEmail  String?
+  prefillName   String?
+  prefillPhone  String?
+
+  // Single-use behavior
+  usedAt        DateTime?
+  usedByOwnerId String?
+  usedByOwner   OwnerUser? @relation("InviteUsedBy", fields: [usedByOwnerId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime  @default(now())
+  expiresAt     DateTime?
+
+  @@index([locationId])
+  @@index([usedAt])
+}
+
+model AuthSession {
+  id              String      @id @default(cuid())
+  ownerId          String
+  role             SessionRole
+
+  // Staff sessions can "select a location" while staying in staff mode
+  staffLocationId  String?
+
+  createdAt        DateTime    @default(now())
+  expiresAt        DateTime
+  lastSeenAt       DateTime?
+
+  owner            OwnerUser   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([expiresAt])
+}
+
+model EmailToken {
+  id         String         @id @default(cuid())
+  ownerId    String
+  type       EmailTokenType
+  token      String         @unique
+
+  createdAt  DateTime       @default(now())
+  expiresAt  DateTime
+  usedAt     DateTime?
+
+  owner      OwnerUser      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, type])
+  @@index([expiresAt])
+}
+
+model Customer {
+  id         String   @id @default(cuid())
+
+  // Store as E.164 (example: +13125551234)
+  phoneE164  String   @unique
+  firstName  String
+  lastName   String
+  email      String?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  enrollments      Enrollment[]
+  magicLinks       CustomerMagicLink[]
+
+  @@index([lastName])
+  @@index([email])
+}
+
+model Enrollment {
+  id            String   @id @default(cuid())
+  customerId    String
+  locationId    String
+
+  // The contact id in this location's GHL account
+  ghlContactId  String
+
+  // Cached points for quick UI rendering (source of truth is still GHL)
+  cachedPoints  Int      @default(0)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  location      Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  purchases     PurchaseLog[]
+  redemptions   RedemptionIntent[]
+
+  @@unique([customerId, locationId])
+  @@index([locationId])
+  @@index([ghlContactId])
+}
+
+model CustomerMagicLink {
+  id               String   @id @default(cuid())
+  token            String   @unique
+
+  customerId       String
+  defaultLocationId String?
+
+  createdAt        DateTime @default(now())
+  expiresAt        DateTime
+  usedAt           DateTime?
+
+  customer         Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([expiresAt])
+}
+
+model RewardItem {
+  id            String         @id @default(cuid())
+  locationId    String
+  type          RewardItemType @default(STANDARD)
+
+  name          String
+  // For STANDARD rewards, this is required.
+  // For SIGNUP_GIFT, this can be left null (not tied to points).
+  pointsRequired Int?
+
+  imageUrl      String?
+  isEnabled     Boolean        @default(true)
+
+  // Use this to protect the built-in default signup gift from deletion in app logic
+  isUndeletable Boolean        @default(false)
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  location      Location       @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId, type])
+  @@index([locationId, isEnabled])
+}
+
+model PurchaseLog {
+  id            String         @id @default(cuid())
+  enrollmentId  String
+  source        PurchaseSource @default(MANUAL)
+
+  // Pre-tax subtotal in cents (example: $3.57 = 357)
+  amountCents   Int
+
+  // Points are always floor(amountCents / 100)
+  pointsAdded   Int
+
+  createdAt     DateTime       @default(now())
+
+  enrollment    Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([enrollmentId])
+  @@index([createdAt])
+}
+
+model RedemptionIntent {
+  id            String   @id @default(cuid())
+  token         String   @unique
+
+  enrollmentId  String
+
+  // Example payload:
+  // [{ "rewardItemId": "...", "name": "Taco", "pointsEach": 10, "qty": 2, "pointsTotal": 20 }]
+  items         Json
+
+  pointsSpent   Int
+
+  createdAt     DateTime @default(now())
+  usedAt        DateTime?
+
+  enrollment    Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([enrollmentId])
+  @@index([usedAt])
+}
+
+model StandOrder {
+  id           String          @id @default(cuid())
+  ownerId      String
+  locationId   String
+
+  quantity     Int
+
+  // The message shown on the stand preview (editable in UI)
+  message      String
+
+  // Optional uploaded logo url (GHL media library)
+  logoUrl      String?
+
+  // Admin fulfillment email flow
+  status       StandOrderStatus @default(PENDING)
+  emailedAt    DateTime?
+
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  owner        OwnerUser       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  location     Location        @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@index([status])
+}
