@@ -1,11 +1,11 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import prisma from "@/lib/prisma";
 import { clearAuthCookie, setAuthCookie } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 interface SignupBody {
   inviteCode?: string;

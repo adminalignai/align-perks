@@ -1,10 +1,10 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import prisma from "@/lib/prisma";
 import { clearAuthCookie, setAuthCookie } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
 import { NextResponse } from "next/server";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 interface LoginBody {
   email?: string;
