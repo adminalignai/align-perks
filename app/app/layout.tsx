@@ -8,6 +8,7 @@ import LogoutButton from "./LogoutButton";
 
 const navItems = [
   { name: "Dashboard", href: "/app" },
+  { name: "Rewards", href: "/app/rewards" },
   { name: "Locations", href: "/app/locations" },
   { name: "Invites", href: "/app/invites" },
 ];
