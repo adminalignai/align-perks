@@ -6,30 +6,15 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-function getPrismaClient(): PrismaClient {
-  const datasourceUrl = process.env.DATABASE_URL;
-
-  // With Prisma 7 + prisma.config.ts, the runtime still needs a concrete URL.
-  // Vercel provides this via Project Environment Variables.
-  if (!datasourceUrl) {
-    throw new Error("DATABASE_URL is not set");
-  }
-
-  return (
-    globalThis.prisma ??
-    (globalThis.prisma = new PrismaClient({
-      datasourceUrl,
-    }))
-  );
+function getPrismaClient() {
+  return globalThis.prisma ?? (globalThis.prisma = new PrismaClient());
 }
 
 const prisma = new Proxy({} as PrismaClient, {
-  get(_target, prop: string | symbol) {
+  get(_target, prop: keyof PrismaClient) {
     const client = getPrismaClient();
-    const value = (client as any)[prop];
-    return typeof value === "function" ? value.bind(client) : value;
+    return client[prop];
   },
 });
 
 export default prisma;
-
