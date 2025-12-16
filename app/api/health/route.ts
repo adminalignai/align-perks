@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 
-import prisma from "@/lib/prisma";
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const prisma = (await import("@/lib/prisma")).default;
   try {
     await prisma.$queryRaw`SELECT 1`;
     return NextResponse.json({ ok: true });
