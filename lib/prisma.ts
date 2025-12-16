@@ -12,13 +12,11 @@ function getPrismaClient(): PrismaClient {
 }
 
 // Lazy proxy so PrismaClient is NOT constructed during module import/build evaluation
-const prisma = new Proxy(
-  {},
-  {
-    get(_target, prop) {
-      return (getPrismaClient() as any)[prop];
-    },
-  }
-) as PrismaClient;
+const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop: string | symbol) {
+    const client = getPrismaClient();
+    return client[prop as keyof PrismaClient];
+  },
+});
 
 export default prisma;
