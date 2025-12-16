@@ -7,7 +7,12 @@ declare global {
 }
 
 function getPrismaClient() {
-  return globalThis.prisma ?? (globalThis.prisma = new PrismaClient());
+  return (
+    globalThis.prisma ??
+    (globalThis.prisma = new PrismaClient({
+      datasourceUrl: process.env.DATABASE_URL,
+    }))
+  );
 }
 
 const prisma = new Proxy({} as PrismaClient, {
