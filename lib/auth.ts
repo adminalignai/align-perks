@@ -69,7 +69,11 @@ async function signPayload(encodedPayload: string): Promise<Uint8Array> {
 
 async function verifySignature(encodedPayload: string, signature: Uint8Array) {
   const key = await getHmacKey();
-  return crypto.subtle.verify("HMAC", key, signature, encoder.encode(encodedPayload));
+
+  // Make sure the signature is backed by a plain ArrayBuffer (avoids TS/SharedArrayBuffer type issues)
+  const sig = Uint8Array.from(signature);
+
+  return crypto.subtle.verify("HMAC", key, sig, encoder.encode(encodedPayload));
 }
 
 export async function createSessionToken(userId: string): Promise<string> {
