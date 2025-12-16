@@ -7,12 +7,15 @@ declare global {
 }
 
 function getPrismaClient() {
-  return (
-    globalThis.prisma ??
-    (globalThis.prisma = new PrismaClient({
-      datasourceUrl: process.env.DATABASE_URL,
-    }))
-  );
+  if (process.env.NODE_ENV === "production") {
+    return new PrismaClient();
+  }
+
+  if (!globalThis.prisma) {
+    globalThis.prisma = new PrismaClient();
+  }
+
+  return globalThis.prisma;
 }
 
 const prisma = new Proxy({} as PrismaClient, {
