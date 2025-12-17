@@ -6,6 +6,7 @@ import { getActiveLocationIdFromCookies } from "@/lib/activeLocation";
 
 import { getSessionFromCookies } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import DashboardIntro from "./DashboardIntro";
 import LocationSwitcher from "./LocationSwitcher";
 import LogoutButton from "./LogoutButton";
 
@@ -16,6 +17,21 @@ const navItems = [
   { name: "QR Code", href: "/app/qr" },
   { name: "Settings / Account", href: "/app/settings" },
 ];
+
+async function acknowledgeDashboardIntro() {
+  "use server";
+
+  const session = await getSessionFromCookies();
+
+  if (!session) {
+    redirect("/login?redirect=/app");
+  }
+
+  await prisma.portalUser.update({
+    where: { id: session.userId },
+    data: { hasSeenDashboardIntro: true },
+  });
+}
 
 export default async function AppLayout({
   children,
@@ -120,6 +136,11 @@ export default async function AppLayout({
                 Secure session active
               </div>
             </header>
+
+            <DashboardIntro
+              hasSeenDashboardIntro={user?.hasSeenDashboardIntro ?? false}
+              onAcknowledge={acknowledgeDashboardIntro}
+            />
 
             <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-6 shadow-2xl shadow-indigo-500/10 backdrop-blur">
               {children}
