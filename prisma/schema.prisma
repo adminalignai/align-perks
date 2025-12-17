@@ -45,6 +45,8 @@ model PortalUser {
   phone           String?
   emailVerifiedAt DateTime?
   staffPinHash    String?
+  hasCompletedOnboarding Boolean @default(false)
+  hasSeenDashboardIntro  Boolean @default(false)
 
   createdAt DateTime @default(now())
 
@@ -61,6 +63,8 @@ model OwnerUser {
   phone           String?
   staffPinHash    String
   lastLocationId  String?
+  hasCompletedOnboarding Boolean @default(false)
+  hasSeenDashboardIntro  Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
