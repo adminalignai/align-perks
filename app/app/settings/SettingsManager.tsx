@@ -1,15 +1,21 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import type { Location } from "@prisma/client";
 
-interface Props {
-  user: { name: string; email: string; phone: string | null };
-  locations: Location[];
+interface LocationSummary {
+  name: string | null;
+  addressLine1: string | null;
+  city: string | null;
+  state: string | null;
+  postalCode: string | null;
 }
 
-export default function SettingsManager({ user, locations }: Props) {
-  const [selectedLocationId, setSelectedLocationId] = useState(locations[0]?.id ?? "");
+interface Props {
+  owner: { name: string; email: string; phone: string | null; hasStaffPin: boolean };
+  location: LocationSummary | null;
+}
+
+export default function SettingsManager({ owner, location }: Props) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPin, setNewPin] = useState("");
@@ -18,10 +24,12 @@ export default function SettingsManager({ user, locations }: Props) {
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [updatingPin, setUpdatingPin] = useState(false);
 
-  const selectedLocation = useMemo(
-    () => locations.find((location) => location.id === selectedLocationId),
-    [locations, selectedLocationId],
-  );
+  const formattedAddress = useMemo(() => {
+    if (!location) return "No address on file";
+    const line1 = location.addressLine1 ?? "No address on file";
+    const cityStateZip = [location.city, location.state, location.postalCode].filter(Boolean).join(", ");
+    return cityStateZip ? `${line1}\n${cityStateZip}` : line1;
+  }, [location]);
 
   const handlePasswordUpdate = async (event: FormEvent) => {
     event.preventDefault();
@@ -64,7 +72,7 @@ export default function SettingsManager({ user, locations }: Props) {
     setPinStatus(null);
     setUpdatingPin(true);
 
-    if (!/^\d{4}$/.test(newPin)) {
+    if (!/^\\d{4}$/.test(newPin)) {
       setPinStatus({ type: "error", message: "Enter a 4-digit staff PIN." });
       setUpdatingPin(false);
       return;
@@ -96,139 +104,65 @@ export default function SettingsManager({ user, locations }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-white/10 bg-white/10 p-5 shadow-lg shadow-indigo-500/10">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Location</p>
-          <h2 className="text-xl font-semibold text-white">Choose a location</h2>
-          <p className="text-sm text-slate-300">
-            Select which restaurant to preview details for. The Location Details section reflects your choice.
-          </p>
+      <section className="space-y-4 rounded-2xl border border-white/10 bg-white/10 p-5 shadow-lg shadow-indigo-500/10">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Account Info</p>
+          <h3 className="text-lg font-semibold text-white">Account Info</h3>
+          <p className="text-sm text-slate-300">Review your owner and restaurant details.</p>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {locations.map((location) => (
-            <button
-              key={location.id}
-              type="button"
-              onClick={() => setSelectedLocationId(location.id)}
-              className={`rounded-full border px-4 py-2 text-sm transition ${
-                selectedLocationId === location.id
-                  ? "border-indigo-300 bg-indigo-500/20 text-white"
-                  : "border-white/10 bg-white/5 text-slate-200 hover:border-white/20"
-              }`}
-            >
-              {location.name ?? "Unnamed location"}
-            </button>
-          ))}
-          {locations.length === 0 ? (
-            <span className="text-sm text-slate-400">No locations available yet.</span>
-          ) : null}
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1">
+            <label className="text-slate-200">Owner Name</label>
+            <input
+              type="text"
+              value={owner.name}
+              disabled
+              className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-400"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-slate-200">Restaurant Name</label>
+            <input
+              type="text"
+              value={location?.name ?? "No restaurant on file"}
+              disabled
+              className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-400"
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="space-y-4 rounded-2xl border border-white/10 bg-white/10 p-5 shadow-lg shadow-indigo-500/10">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Profile Information</p>
-            <h3 className="text-lg font-semibold text-white">Profile Information</h3>
-            <p className="text-sm text-slate-300">Read-only owner details for this account.</p>
-          </div>
-          <div className="space-y-3 text-sm text-slate-300">
-            <div className="space-y-1">
-              <label className="text-slate-200">Name</label>
-              <input
-                type="text"
-                value={user.name}
-                disabled
-                className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-300"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-slate-200">Email</label>
-              <input
-                type="email"
-                value={user.email}
-                disabled
-                className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-300"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-slate-200">Phone</label>
-              <input
-                type="text"
-                value={user.phone ?? "Not provided"}
-                disabled
-                className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-300"
-              />
-            </div>
-          </div>
-        </section>
+        <div className="space-y-1">
+          <label className="text-slate-200">Address</label>
+          <textarea
+            value={formattedAddress}
+            disabled
+            rows={2}
+            className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-400"
+          />
+        </div>
 
-        <section className="space-y-4 rounded-2xl border border-white/10 bg-white/10 p-5 shadow-lg shadow-indigo-500/10">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Location Details</p>
-            <h3 className="text-lg font-semibold text-white">Location Details</h3>
-            <p className="text-sm text-slate-300">
-              These details update when you change the selected location above.
-            </p>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1">
+            <label className="text-slate-200">Owner Email</label>
+            <input
+              type="email"
+              value={owner.email}
+              disabled
+              className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-400"
+            />
           </div>
-
-          {selectedLocation ? (
-            <div className="space-y-3 text-sm text-slate-300">
-              <div className="space-y-1">
-                <label className="text-slate-200">Restaurant Name</label>
-                <input
-                  type="text"
-                  value={selectedLocation.name ?? "Untitled restaurant"}
-                  disabled
-                  className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-300"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-slate-200">Address Line 1</label>
-                <input
-                  type="text"
-                  value={selectedLocation.addressLine1 ?? "No address on file"}
-                  disabled
-                  className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-300"
-                />
-              </div>
-              <div className="grid gap-2 md:grid-cols-3">
-                <div className="space-y-1">
-                  <label className="text-slate-200">City</label>
-                  <input
-                    type="text"
-                    value={selectedLocation.city ?? "--"}
-                    disabled
-                    className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-300"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-slate-200">State</label>
-                  <input
-                    type="text"
-                    value={selectedLocation.state ?? "--"}
-                    disabled
-                    className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-300"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-slate-200">Zip</label>
-                  <input
-                    type="text"
-                    value={selectedLocation.postalCode ?? "--"}
-                    disabled
-                    className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-300"
-                  />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-dashed border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-              Add a location to view its restaurant details.
-            </div>
-          )}
-        </section>
-      </div>
+          <div className="space-y-1">
+            <label className="text-slate-200">Owner Phone</label>
+            <input
+              type="text"
+              value={owner.phone ?? "Not provided"}
+              disabled
+              className="w-full rounded-lg border border-white/10 bg-slate-900/50 px-3 py-2 text-slate-400"
+            />
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="space-y-4 rounded-2xl border border-white/10 bg-white/10 p-5 shadow-lg shadow-indigo-500/10">
@@ -295,7 +229,7 @@ export default function SettingsManager({ user, locations }: Props) {
                 className="w-full rounded-lg border border-white/10 bg-slate-900/70 px-3 py-2 text-white placeholder:text-slate-500 focus:border-indigo-400 focus:outline-none"
                 placeholder="••••"
                 inputMode="numeric"
-                pattern="\d{4}"
+                pattern="\\d{4}"
                 maxLength={4}
               />
             </div>
@@ -309,7 +243,7 @@ export default function SettingsManager({ user, locations }: Props) {
               disabled={updatingPin}
               className="w-full rounded-lg bg-gradient-to-r from-indigo-500 via-blue-500 to-emerald-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-400/40 disabled:opacity-60"
             >
-              {updatingPin ? "Updating..." : "Update PIN"}
+              {updatingPin ? "Updating..." : owner.hasStaffPin ? "Update PIN" : "Set PIN"}
             </button>
           </form>
         </section>

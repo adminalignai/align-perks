@@ -62,9 +62,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const userLocation = await prisma.userLocation.findFirst({
+      where: { userId: session.userId },
+      include: { location: { include: { owners: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const ownerId = userLocation?.location.owners[0]?.ownerId;
+
+    if (!ownerId) {
+      return NextResponse.json(
+        { error: "No owner is associated with this account" },
+        { status: 400 },
+      );
+    }
+
     const staffPinHash = await hashPassword(body.newPin);
 
-    await prisma.portalUser.update({ where: { id: user.id }, data: { staffPinHash } });
+    await prisma.$transaction([
+      prisma.portalUser.update({ where: { id: user.id }, data: { staffPinHash } }),
+      prisma.ownerUser.update({ where: { id: ownerId }, data: { staffPinHash } }),
+    ]);
 
     return NextResponse.json({ success: true });
   }
