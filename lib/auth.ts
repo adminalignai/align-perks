@@ -116,10 +116,9 @@ export async function parseSessionToken(
   }
 }
 
-export async function setAuthCookie(userId: string): Promise<void> {
-  const token = await createSessionToken(userId);
+export async function setAuthCookie(userId: string, role: 'OWNER' | 'STAFF'): Promise<void> {
+  const token = await createSessionToken(userId, role);
   const cookieStore = await cookies();
-
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "lax",
