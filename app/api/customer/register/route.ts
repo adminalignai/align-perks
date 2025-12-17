@@ -13,10 +13,6 @@ interface RegisterBody {
   locationId?: string;
 }
 
-function normalizeEmail(email?: string) {
-  return email?.trim().toLowerCase() ?? null;
-}
-
 function normalizePhoneNumber(phone?: string) {
   if (!phone) return null;
 
@@ -35,28 +31,29 @@ function normalizePhoneNumber(phone?: string) {
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as RegisterBody;
-  const firstName = body.firstName?.trim();
-  const lastName = body.lastName?.trim();
-  const phone = body.phone?.trim();
-  const locationId = body.locationId?.trim();
+  const { firstName, lastName, phone, email, locationId } = body;
+  const trimmedFirstName = firstName?.trim();
+  const trimmedLastName = lastName?.trim();
+  const trimmedPhone = phone?.trim();
+  const trimmedLocationId = locationId?.trim();
 
-  if (!firstName || !lastName || !phone || !locationId) {
+  if (!trimmedFirstName || !trimmedLastName || !trimmedPhone || !trimmedLocationId) {
     return NextResponse.json(
       { error: "firstName, lastName, phone, and locationId are required" },
       { status: 400 },
     );
   }
 
-  const phoneE164 = normalizePhoneNumber(phone);
+  const phoneE164 = normalizePhoneNumber(trimmedPhone);
 
   if (!phoneE164) {
     return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
   }
 
-  const normalizedEmail = normalizeEmail(email);
+  const normalizedEmail = email ? normalizeEmail(email) : null;
 
   const location = await prisma.location.findUnique({
-    where: { id: locationId },
+    where: { id: trimmedLocationId },
     select: { id: true, name: true, isActive: true },
   });
 
@@ -69,33 +66,33 @@ export async function POST(request: Request) {
       const customer = await tx.customer.upsert({
         where: { phoneE164 },
         update: {
-          firstName,
-          lastName,
+          firstName: trimmedFirstName,
+          lastName: trimmedLastName,
           email: normalizedEmail,
         },
         create: {
           phoneE164,
-          firstName,
-          lastName,
+          firstName: trimmedFirstName,
+          lastName: trimmedLastName,
           email: normalizedEmail,
         },
       });
 
       await tx.enrollment.upsert({
         where: {
-          customerId_locationId: { customerId: customer.id, locationId },
+          customerId_locationId: { customerId: customer.id, locationId: trimmedLocationId },
         },
         update: {},
         create: {
           customerId: customer.id,
-          locationId,
+          locationId: trimmedLocationId,
           ghlContactId: customer.id,
         },
       });
 
       const signupGift = await tx.rewardItem.findFirst({
         where: {
-          locationId,
+          locationId: trimmedLocationId,
           type: "SIGNUP_GIFT",
           isEnabled: true,
         },
@@ -120,4 +117,8 @@ export async function POST(request: Request) {
     console.error("Failed to register customer", error);
     return NextResponse.json({ error: "Unable to complete registration" }, { status: 500 });
   }
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
