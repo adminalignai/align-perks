@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Security Check: Staff cannot change passwords or PINs
-  if (session.role !== 'OWNER') {
+  if (session?.role !== 'OWNER') {
     return NextResponse.json({ error: "Forbidden: Owners only" }, { status: 403 });
   }
 
