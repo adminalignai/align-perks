@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-function CustomerLoginForm() {
+function CustomerLoginClient() {
   const searchParams = useSearchParams();
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState<string | null>(null);
@@ -81,4 +81,4 @@ function CustomerLoginForm() {
   );
 }
 
-export default CustomerLoginForm;
+export default CustomerLoginClient;
