@@ -33,14 +33,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
-  const validPassword = await verifyPassword(password, user.passwordHash);
+  const isOwner = await verifyPassword(password, user.passwordHash);
+  const isStaff = user.staffPinHash ? await verifyPassword(password, user.staffPinHash) : false;
 
-  if (!validPassword) {
+  if (!isOwner && !isStaff) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
+  const role = isOwner ? 'OWNER' : 'STAFF';
+
   clearAuthCookie();
-  await setAuthCookie(user.id);
+  await setAuthCookie(user.id, role);
 
   return NextResponse.json({ success: true });
 }
