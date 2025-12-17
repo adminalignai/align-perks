@@ -101,7 +101,7 @@ export async function POST(request: Request) {
   }
 
   clearAuthCookie();
-  await setAuthCookie(createdUserId);
+  await setAuthCookie(createdUserId, 'OWNER');
 
   return NextResponse.json({ success: true });
 }
