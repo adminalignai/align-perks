@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { getActiveLocationIdFromCookies } from "@/lib/activeLocation";
 import { getSessionFromCookies } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import QrManager from "./QrManager";
@@ -11,9 +12,13 @@ export default async function QrPage() {
     redirect("/login?redirect=/app/qr");
   }
 
-  const locations = await prisma.userLocation.findMany({
-    where: { userId: session.userId },
-    include: { location: { include: { rewardItems: true } } },
+  const activeLocationId = await getActiveLocationIdFromCookies();
+  const userLocation = await prisma.userLocation.findFirst({
+    where: {
+      userId: session.userId,
+      ...(activeLocationId ? { locationId: activeLocationId } : {}),
+    },
+    include: { location: { include: { rewardItems: true, standOrders: true } } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -27,7 +32,7 @@ export default async function QrPage() {
         </p>
       </div>
 
-      <QrManager locations={locations.map(({ location }) => location)} />
+      <QrManager location={userLocation?.location ?? null} />
     </div>
   );
 }

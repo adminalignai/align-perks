@@ -9,7 +9,7 @@ interface LocationWithRewards extends Location {
 }
 
 interface Props {
-  locations: LocationWithRewards[];
+  location: LocationWithRewards | null;
 }
 
 function formatCurrency(value: number) {
@@ -56,11 +56,9 @@ function StandPreview({
   );
 }
 
-export default function QrManager({ locations }: Props) {
-  const [selectedLocationId, setSelectedLocationId] = useState(
-    locations[0]?.id ?? "",
-  );
+export default function QrManager({ location }: Props) {
   const [logoUrl, setLogoUrl] = useState("");
+  const [logoFileUrl, setLogoFileUrl] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [lastAutoMessage, setLastAutoMessage] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -69,20 +67,15 @@ export default function QrManager({ locations }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [messageEdited, setMessageEdited] = useState(false);
 
-  const selectedLocation = useMemo(
-    () => locations.find((location) => location.id === selectedLocationId),
-    [locations, selectedLocationId],
-  );
-
   const signUpGiftName = useMemo(() => {
-    return selectedLocation?.rewardItems.find(
+    return location?.rewardItems.find(
       (item) => item.type === "SIGNUP_GIFT" && item.isEnabled,
     )?.name;
-  }, [selectedLocation]);
+  }, [location]);
 
   const defaultMessage = useMemo(
     () =>
-      `Join our rewards program to earn points for every purchase. Sign up now and get a FREE ${signUpGiftName ?? "sign-up gift"}!`,
+      `Join our rewards program to earn points for every purchase. Sign up now and get a FREE ${signUpGiftName ?? "[Sign-up Gift Name]"}!`,
     [signUpGiftName],
   );
 
@@ -106,12 +99,12 @@ export default function QrManager({ locations }: Props) {
   }, [defaultMessage, lastAutoMessage, messageEdited]);
 
   const qrValue = useMemo(() => {
-    if (!selectedLocationId) return "";
+    if (!location?.id) return "";
     if (typeof window === "undefined") {
-      return `/register?locationId=${selectedLocationId}`;
+      return `/register?locationId=${location.id}`;
     }
-    return `${window.location.origin}/register?locationId=${selectedLocationId}`;
-  }, [selectedLocationId]);
+    return `${window.location.origin}/register?locationId=${location.id}`;
+  }, [location?.id]);
 
   const totalPrice = quantity * 43.99;
 
@@ -119,13 +112,19 @@ export default function QrManager({ locations }: Props) {
     setStep(1);
     setQuantity(1);
     setLogoUrl("");
+    setLogoFileUrl((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+      return null;
+    });
     setMessage(defaultMessage);
     setMessageEdited(false);
   };
 
   const placeOrder = async () => {
-    if (!selectedLocationId) {
-      setError("Choose a location to place your order.");
+    if (!location?.id) {
+      setError("Add a location to place your order.");
       return;
     }
 
@@ -137,10 +136,10 @@ export default function QrManager({ locations }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          locationId: selectedLocationId,
+          locationId: location.id,
           quantity,
           totalPrice,
-          logoUrl: logoUrl || undefined,
+          logoUrl: logoFileUrl ?? logoUrl || undefined,
           message,
         }),
       });
@@ -160,7 +159,15 @@ export default function QrManager({ locations }: Props) {
     }
   };
 
-  if (locations.length === 0) {
+  useEffect(() => {
+    return () => {
+      if (logoFileUrl) {
+        URL.revokeObjectURL(logoFileUrl);
+      }
+    };
+  }, [logoFileUrl]);
+
+  if (!location) {
     return (
       <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-6 text-slate-300">
         Add a location first to generate your QR code and order stands.
@@ -170,28 +177,6 @@ export default function QrManager({ locations }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/10 p-5 shadow-lg shadow-indigo-500/10">
-        <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">
-          Choose location
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {locations.map((location) => (
-            <button
-              key={location.id}
-              type="button"
-              onClick={() => setSelectedLocationId(location.id)}
-              className={`rounded-full border px-4 py-2 text-sm transition ${
-                selectedLocationId === location.id
-                  ? "border-indigo-300 bg-indigo-500/20 text-white"
-                  : "border-white/10 bg-white/5 text-slate-200 hover:border-white/20"
-              }`}
-            >
-              {location.name ?? "Unnamed location"}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -255,16 +240,36 @@ export default function QrManager({ locations }: Props) {
               <div>
                 <h3 className="text-lg font-semibold text-white">Upload your logo</h3>
                 <p className="text-sm text-slate-300">
-                  Add a URL to your logo image to showcase your brand on the stand.
+                  Upload your logo file to showcase your brand on the stand (preview only for now).
                 </p>
               </div>
-              <input
-                type="text"
-                value={logoUrl}
-                onChange={(event) => setLogoUrl(event.target.value)}
-                placeholder="https://example.com/logo.png"
-                className="w-full rounded-lg border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-indigo-400 focus:outline-none"
-              />
+              <label className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-white/20 bg-slate-900/50 px-4 py-6 text-center text-sm text-slate-300 transition hover:border-indigo-300/60 hover:bg-slate-900/70">
+                <span className="text-base font-semibold text-white">Choose logo file</span>
+                <span className="text-xs text-slate-400">PNG or JPG, 5MB max (preview only)</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    console.log("Selected logo file:", file.name);
+                    const nextUrl = URL.createObjectURL(file);
+                    setLogoFileUrl((current) => {
+                      if (current) {
+                        URL.revokeObjectURL(current);
+                      }
+                      return nextUrl;
+                    });
+                    setLogoUrl(file.name);
+                  }}
+                />
+                {logoFileUrl ? (
+                  <span className="text-xs text-indigo-100">File selected: {logoUrl}</span>
+                ) : (
+                  <span className="text-xs text-slate-500">No file chosen</span>
+                )}
+              </label>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -277,6 +282,12 @@ export default function QrManager({ locations }: Props) {
                   type="button"
                   onClick={() => {
                     setLogoUrl("");
+                    setLogoFileUrl((current) => {
+                      if (current) {
+                        URL.revokeObjectURL(current);
+                      }
+                      return null;
+                    });
                     setStep(3);
                   }}
                   className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/5"
@@ -289,7 +300,7 @@ export default function QrManager({ locations }: Props) {
 
           {step === 3 ? (
             <div className="space-y-4">
-              <StandPreview logoUrl={logoUrl} message={message} qrValue="stand-preview" />
+              <StandPreview logoUrl={logoFileUrl ?? undefined} message={message} qrValue="stand-preview" />
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-white" htmlFor="stand-message">
                   Message
@@ -320,7 +331,7 @@ export default function QrManager({ locations }: Props) {
 
           {step === 4 ? (
             <div className="space-y-4">
-              <StandPreview logoUrl={logoUrl} message={message} qrValue={qrValue || "align-perks"} />
+              <StandPreview logoUrl={logoFileUrl ?? undefined} message={message} qrValue={qrValue || "align-perks"} />
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-white" htmlFor="stand-quantity">
                   How many would you like?
@@ -336,7 +347,13 @@ export default function QrManager({ locations }: Props) {
                   className="w-32 rounded-lg border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none"
                 />
                 <p className="text-sm text-slate-200">
-                  Total: <span className="font-semibold text-white">{formatCurrency(totalPrice)}</span>
+                  Price per stand: <span className="font-semibold text-white">{formatCurrency(43.99)}</span>
+                </p>
+                <p className="text-sm text-slate-200">
+                  Total:{" "}
+                  <span className="font-semibold text-white">
+                    {formatCurrency(totalPrice)}
+                  </span>
                 </p>
               </div>
               <button
@@ -357,7 +374,7 @@ export default function QrManager({ locations }: Props) {
               </div>
               <h3 className="text-xl font-semibold text-white">Order Placed!</h3>
               <p className="text-sm text-emerald-100">
-                We&apos;ve logged your order. You&apos;ll get an email confirmation shortly.
+                Order placed! We will email you with shipping details.
               </p>
               <button
                 type="button"
