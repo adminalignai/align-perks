@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { RewardItemType } from "@prisma/client";
+
 import { getSessionFromRequest } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
@@ -47,11 +49,26 @@ export async function PATCH(
 
   const data: Record<string, unknown> = {};
 
-  if (typeof body.name === "string") data.name = body.name;
-  if (typeof body.pointsRequired === "number" || body.pointsRequired === null)
-    data.pointsRequired = body.pointsRequired;
+  if (typeof body.name === "string") data.name = body.name.trim();
   if (typeof body.imageUrl === "string" || body.imageUrl === null) data.imageUrl = body.imageUrl;
   if (typeof body.isEnabled === "boolean") data.isEnabled = body.isEnabled;
+
+  if (authorized.reward.type === RewardItemType.SIGNUP_GIFT) {
+    if (body.pointsRequired === null) {
+      data.pointsRequired = null;
+    } else if (typeof body.pointsRequired === "number") {
+      if (!Number.isInteger(body.pointsRequired) || body.pointsRequired < 0) {
+        return NextResponse.json({ error: "Point value must be an integer" }, { status: 400 });
+      }
+      data.pointsRequired = body.pointsRequired;
+    }
+  } else {
+    if (!Number.isInteger(body.pointsRequired ?? NaN) || (body.pointsRequired ?? 0) < 0) {
+      return NextResponse.json({ error: "pointsRequired must be an integer" }, { status: 400 });
+    }
+
+    data.pointsRequired = body.pointsRequired ?? authorized.reward.pointsRequired ?? 0;
+  }
 
   const reward = await prisma.rewardItem.update({
     where: { id },
@@ -72,7 +89,7 @@ export async function DELETE(
     return authorized.error;
   }
 
-  if (authorized.reward.isUndeletable) {
+  if (authorized.reward.type === RewardItemType.SIGNUP_GIFT || authorized.reward.isUndeletable) {
     return NextResponse.json({ error: "Cannot delete this reward" }, { status: 400 });
   }
 
