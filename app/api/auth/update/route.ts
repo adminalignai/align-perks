@@ -16,9 +16,13 @@ interface UpdateBody {
 
 export async function POST(request: NextRequest) {
   const session = await getSessionFromRequest(request);
-
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Security Check: Staff cannot change passwords or PINs
+  if (session.role !== 'OWNER') {
+    return NextResponse.json({ error: "Forbidden: Owners only" }, { status: 403 });
   }
 
   const body = (await request.json().catch(() => ({}))) as UpdateBody;
