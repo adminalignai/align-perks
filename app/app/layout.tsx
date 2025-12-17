@@ -2,16 +2,19 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { getActiveLocationIdFromCookies } from "@/lib/activeLocation";
+
 import { getSessionFromCookies } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import LocationSwitcher from "./LocationSwitcher";
 import LogoutButton from "./LogoutButton";
 
 const navItems = [
-  { name: "Dashboard", href: "/app" },
-  { name: "Locations", href: "/app/locations" },
-  { name: "Invites", href: "/app/invites" },
+  { name: "Get Started", href: "/app/get-started" },
+  { name: "Reward Items", href: "/app/rewards" },
+  { name: "Clients", href: "/app/clients" },
   { name: "QR Code", href: "/app/qr" },
-  { name: "Settings", href: "/app/settings" },
+  { name: "Settings / Account", href: "/app/settings" },
 ];
 
 export default async function AppLayout({
@@ -29,6 +32,17 @@ export default async function AppLayout({
     where: { id: session.userId },
   });
 
+  const userLocations = await prisma.userLocation.findMany({
+    where: { userId: session.userId },
+    include: { location: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const activeLocationId = await getActiveLocationIdFromCookies();
+  const activeLocation = userLocations.find(({ location }) => location.id === activeLocationId)?.location
+    ?? userLocations[0]?.location
+    ?? null;
+
   return (
     <div className="relative min-h-screen bg-slate-950 text-slate-100">
       <div
@@ -37,7 +51,7 @@ export default async function AppLayout({
       />
       <div className="relative z-10 flex min-h-screen">
         <aside className="hidden w-72 flex-col border-r border-white/10 bg-white/5 p-6 backdrop-blur-xl lg:flex">
-          <div className="mb-10">
+          <div className="mb-6">
             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 shadow-lg shadow-indigo-500/10">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-blue-500 to-emerald-400 text-xl font-semibold text-white">
                 AP
@@ -51,6 +65,13 @@ export default async function AppLayout({
                 </span>
               </div>
             </div>
+          </div>
+
+          <div className="mb-6">
+            <LocationSwitcher
+              locations={userLocations.map(({ location }) => location)}
+              activeLocationId={activeLocation?.id ?? null}
+            />
           </div>
 
           <nav className="flex flex-1 flex-col gap-2">
