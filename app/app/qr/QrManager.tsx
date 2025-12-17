@@ -139,7 +139,7 @@ export default function QrManager({ location }: Props) {
           locationId: location.id,
           quantity,
           totalPrice,
-          logoUrl: logoFileUrl ?? logoUrl || undefined,
+          logoUrl: logoFileUrl || logoUrl || undefined,
           message,
         }),
       });
@@ -331,7 +331,11 @@ export default function QrManager({ location }: Props) {
 
           {step === 4 ? (
             <div className="space-y-4">
-              <StandPreview logoUrl={logoFileUrl ?? undefined} message={message} qrValue={qrValue || "align-perks"} />
+              <StandPreview
+                logoUrl={logoFileUrl ?? undefined}
+                message={message}
+                qrValue={qrValue || "align-perks"}
+              />
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-white" htmlFor="stand-quantity">
                   How many would you like?
