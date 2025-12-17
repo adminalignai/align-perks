@@ -6,6 +6,7 @@ export const SESSION_COOKIE_NAME = "ap_session";
 
 interface SessionPayload {
   userId: string;
+  role: 'OWNER' | 'STAFF';
   exp: number;
 }
 
@@ -76,9 +77,10 @@ async function verifySignature(encodedPayload: string, signature: Uint8Array) {
   return crypto.subtle.verify("HMAC", key, sig, encoder.encode(encodedPayload));
 }
 
-export async function createSessionToken(userId: string): Promise<string> {
+export async function createSessionToken(userId: string, role: 'OWNER' | 'STAFF'): Promise<string> {
   const payload: SessionPayload = {
     userId,
+    role,
     exp: Date.now() + SESSION_DURATION_MS,
   };
 
