@@ -17,6 +17,12 @@
     "react": "19.2.1",
     "react-dom": "19.2.1"
   },
+  "overrides": {
+    "qrcode.react": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    }
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
