@@ -8,7 +8,6 @@ interface RewardManagerProps {
   locationId: string;
   locationName?: string | null;
   rewards: RewardItem[];
-  isStaff: boolean;
 }
 
 type Draft = {
@@ -31,7 +30,7 @@ function parsePoints(value: string, { allowEmpty }: { allowEmpty?: boolean } = {
   return { parsed, valid: true } as const;
 }
 
-export default function RewardManager({ locationId, locationName, rewards, isStaff }: RewardManagerProps) {
+export default function RewardManager({ locationId, locationName, rewards }: RewardManagerProps) {
 const router = useRouter();
 
   const [items, setItems] = useState<RewardItem[]>(rewards);
