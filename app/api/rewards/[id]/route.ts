@@ -33,6 +33,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await getSessionFromRequest(request);
+  if (session?.role !== 'OWNER') {
+    return NextResponse.json({ error: "Forbidden: Owners only" }, { status: 403 });
+  }
+
   const { id } = await params;
   const authorized = await authorizeReward(request, id);
 
@@ -82,6 +87,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await getSessionFromRequest(request);
+  if (session?.role !== 'OWNER') {
+    return NextResponse.json({ error: "Forbidden: Owners only" }, { status: 403 });
+  }
+
   const { id } = await params;
   const authorized = await authorizeReward(request, id);
 
