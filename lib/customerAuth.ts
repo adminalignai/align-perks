@@ -6,6 +6,7 @@ export const CUSTOMER_SESSION_COOKIE_NAME = "ap_customer_session";
 
 interface CustomerSessionPayload {
   customerId: string;
+  role: 'CUSTOMER';
   exp: number;
 }
 
@@ -78,6 +79,7 @@ async function verifySignature(encodedPayload: string, signature: Uint8Array) {
 export async function createCustomerSessionToken(customerId: string): Promise<string> {
   const payload: CustomerSessionPayload = {
     customerId,
+    role: 'CUSTOMER',
     exp: Date.now() + SESSION_DURATION_MS,
   };
 
