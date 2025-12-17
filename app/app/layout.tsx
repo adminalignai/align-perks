@@ -10,6 +10,8 @@ const navItems = [
   { name: "Dashboard", href: "/app" },
   { name: "Locations", href: "/app/locations" },
   { name: "Invites", href: "/app/invites" },
+  { name: "Rewards", href: "/app/rewards" },
+  { name: "Clients", href: "/app/clients" },
 ];
 
 export default async function AppLayout({
