@@ -77,6 +77,26 @@ export async function updateContactCustomField(
   return handleResponse<{ contact: { id: string } }>(response);
 }
 
+export async function addContactNote(accessToken: string, contactId: string, body: string) {
+  const response = await fetch(`${BASE_URL}/contacts/${contactId}/notes`, {
+    method: "POST",
+    headers: buildHeaders(accessToken),
+    body: JSON.stringify({ body }),
+  });
+
+  return handleResponse<{ note: { id: string } }>(response);
+}
+
+export async function addContactTag(accessToken: string, contactId: string, tags: string[]) {
+  const response = await fetch(`${BASE_URL}/contacts/${contactId}/tags`, {
+    method: "POST",
+    headers: buildHeaders(accessToken),
+    body: JSON.stringify({ tags }),
+  });
+
+  return handleResponse<{ message: string }>(response);
+}
+
 export async function deleteContact(accessToken: string, contactId: string) {
   const response = await fetch(`${BASE_URL}/contacts/${contactId}`, {
     method: "DELETE",

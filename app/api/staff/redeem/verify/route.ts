@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getSessionFromRequest } from "@/lib/auth";
+import { addContactNote, addContactTag, updateContactCustomField } from "@/lib/ghl";
 import prisma from "@/lib/prisma";
 
 type RedemptionItemSnapshot = {
@@ -139,6 +140,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const accessToken = process.env.GHL_PRIVATE_TOKEN;
+  const pointsFieldId = process.env.GHL_POINTS_FIELD_ID;
+
   const body = (await request.json().catch(() => ({}))) as { token?: string };
   const token = body.token?.trim() || request.nextUrl.searchParams.get("token")?.trim();
 
@@ -156,6 +160,7 @@ export async function POST(request: NextRequest) {
               id: true,
               cachedPoints: true,
               locationId: true,
+              ghlContactId: true,
               customer: { select: { firstName: true, lastName: true } },
               location: { select: { id: true, name: true } },
             },
@@ -195,13 +200,29 @@ export async function POST(request: NextRequest) {
         data: { usedAt: new Date() },
       });
 
-      // TODO: Log redemption to GHL contact notes (stubbed for now)
-
       return { redemption, items: parseItems(redemption.items) };
     });
 
     const customerName = `${redemption.enrollment.customer.firstName} ${redemption.enrollment.customer.lastName}`.trim();
     const rewardName = items[0]?.name ?? "Reward";
+    const quantity = items[0]?.qty ?? 1;
+    const newBalance = redemption.enrollment.cachedPoints - redemption.pointsSpent;
+
+    if (accessToken && pointsFieldId && redemption.enrollment.ghlContactId) {
+      try {
+        await updateContactCustomField(accessToken, redemption.enrollment.ghlContactId, pointsFieldId, newBalance);
+        await addContactNote(
+          accessToken,
+          redemption.enrollment.ghlContactId,
+          `Redeemed ${quantity} of ${rewardName} for ${redemption.pointsSpent} points.`,
+        );
+        await addContactTag(accessToken, redemption.enrollment.ghlContactId, ["loyalty-redeemed-reward"]);
+      } catch (error) {
+        console.error("Failed to sync redemption to GHL", error);
+      }
+    } else {
+      console.error("Missing GHL configuration or contact ID; skipping GHL sync for redemption");
+    }
 
     return NextResponse.json({ success: true, customerName, rewardName });
   } catch (error) {
