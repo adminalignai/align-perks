@@ -464,7 +464,7 @@ export default function RewardManager({ locationId, locationName, rewards, isSta
 
   return (
     <div className="space-y-6">
-      {!isStaff ? (
+      {!isStaff && (
         <section className="sticky top-0 z-10 space-y-3 rounded-2xl border border-white/10 bg-white/10 p-5 shadow-lg shadow-indigo-500/10 backdrop-blur">
           <div className="flex flex-col gap-1">
             <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Add reward item</p>
@@ -520,7 +520,7 @@ export default function RewardManager({ locationId, locationName, rewards, isSta
             </button>
           </div>
         </section>
-      ) : null}
+      )}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
