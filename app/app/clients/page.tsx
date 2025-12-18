@@ -11,6 +11,7 @@ export default async function ClientsPage() {
   if (!session) {
     redirect("/login?redirect=/app/clients");
   }
+  const isStaff = session.role === "STAFF";
 
   const userLocations = await prisma.userLocation.findMany({
     where: { userId: session.userId },
@@ -62,6 +63,7 @@ export default async function ClientsPage() {
       <ClientManager
         locationId={activeLocation.id}
         initialClients={clients}
+        isStaff={isStaff}
       />
     </div>
   );

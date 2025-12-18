@@ -8,6 +8,7 @@ interface RewardManagerProps {
   locationId: string;
   locationName?: string | null;
   rewards: RewardItem[];
+  isStaff?: boolean;
 }
 
 type Draft = {
@@ -30,8 +31,8 @@ function parsePoints(value: string, { allowEmpty }: { allowEmpty?: boolean } = {
   return { parsed, valid: true } as const;
 }
 
-export default function RewardManager({ locationId, locationName, rewards }: RewardManagerProps) {
-const router = useRouter();
+export default function RewardManager({ locationId, locationName, rewards, isStaff = false }: RewardManagerProps) {
+  const router = useRouter();
 
   const [items, setItems] = useState<RewardItem[]>(rewards);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -280,9 +281,10 @@ const router = useRouter();
             <button
               type="button"
               onClick={() => setSignupDraft((draft) => ({ ...draft, isEnabled: !draft.isEnabled }))}
+              disabled={isStaff}
               className={`flex h-7 w-12 items-center rounded-full border border-white/10 p-1 transition ${
                 signupDraft.isEnabled ? "bg-emerald-500/70" : "bg-white/10"
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-60`}
             >
               <span
                 className={`h-5 w-5 rounded-full bg-white shadow transition ${
@@ -306,7 +308,8 @@ const router = useRouter();
               type="text"
               value={signupDraft.name}
               onChange={(event) => setSignupDraft((draft) => ({ ...draft, name: event.target.value }))}
-              className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none"
+              disabled={isStaff}
+              className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
             />
           </div>
 
@@ -320,7 +323,8 @@ const router = useRouter();
                 inputMode="numeric"
                 value={signupDraft.points}
                 onChange={(event) => setSignupDraft((draft) => ({ ...draft, points: event.target.value }))}
-                className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none"
+                disabled={isStaff}
+                className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
               />
               <span className="whitespace-nowrap text-xs text-slate-300">
                 Valued at {signupDraft.points.trim() === "" ? 0 : parsePoints(signupDraft.points, { allowEmpty: true }).parsed ?? 0} points
@@ -330,19 +334,21 @@ const router = useRouter();
 
           <div className="flex flex-col gap-2 md:items-end">
             <label className="text-xs uppercase tracking-[0.15em] text-slate-300">Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) console.log("Selected new image for sign-up gift", file.name);
-              }}
-              className="w-full rounded-lg border border-dashed border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-200 md:w-auto"
-            />
+            {!isStaff ? (
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) console.log("Selected new image for sign-up gift", file.name);
+                }}
+                className="w-full rounded-lg border border-dashed border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-200 md:w-auto"
+              />
+            ) : null}
           </div>
         </div>
 
-        {isSignupDirty ? (
+        {isSignupDirty && !isStaff ? (
           <div className="flex justify-end">
             <button
               type="button"
@@ -376,14 +382,16 @@ const router = useRouter();
             <p className="text-xs uppercase tracking-[0.15em] text-indigo-200">Reward Item</p>
             <h3 className="text-lg font-semibold text-white">Standard reward</h3>
           </div>
-          <button
-            type="button"
-            onClick={() => handleDelete(reward)}
-            disabled={deletingId === reward.id}
-            className="self-start rounded-lg border border-rose-400/40 bg-rose-500/10 px-3 py-1 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/20 disabled:opacity-60"
-          >
-            {deletingId === reward.id ? "Deleting..." : "Delete"}
-          </button>
+          {!isStaff ? (
+            <button
+              type="button"
+              onClick={() => handleDelete(reward)}
+              disabled={deletingId === reward.id}
+              className="self-start rounded-lg border border-rose-400/40 bg-rose-500/10 px-3 py-1 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/20 disabled:opacity-60"
+            >
+              {deletingId === reward.id ? "Deleting..." : "Delete"}
+            </button>
+          ) : null}
         </div>
 
         <div className="grid gap-4 md:grid-cols-3 md:items-end">
@@ -398,7 +406,8 @@ const router = useRouter();
                   [reward.id]: { ...draft, name: event.target.value },
                 }))
               }
-              className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none"
+              disabled={isStaff}
+              className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
             />
           </div>
 
@@ -416,25 +425,28 @@ const router = useRouter();
                   [reward.id]: { ...draft, points: event.target.value },
                 }))
               }
-              className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none"
+              disabled={isStaff}
+              className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
             />
           </div>
 
           <div className="flex flex-col gap-2 md:items-end">
             <label className="text-xs uppercase tracking-[0.15em] text-slate-300">Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) console.log("Selected new image for", reward.name, file.name);
-              }}
-              className="w-full rounded-lg border border-dashed border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-200 md:w-auto"
-            />
+            {!isStaff ? (
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) console.log("Selected new image for", reward.name, file.name);
+                }}
+                className="w-full rounded-lg border border-dashed border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-200 md:w-auto"
+              />
+            ) : null}
           </div>
         </div>
 
-        {isDirty ? (
+        {isDirty && !isStaff ? (
           <div className="flex justify-end gap-2">
             <button
               type="button"
@@ -450,63 +462,65 @@ const router = useRouter();
     );
   };
 
- return (
+  return (
     <div className="space-y-6">
-      <section className="sticky top-0 z-10 space-y-3 rounded-2xl border border-white/10 bg-white/10 p-5 shadow-lg shadow-indigo-500/10 backdrop-blur">
-        <div className="flex flex-col gap-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Add reward item</p>
-          <p className="text-lg font-semibold text-white">{locationName ?? "Current location"}</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3 md:items-end">
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-[0.15em] text-slate-300">Reward Item</label>
-            <input
-              type="text"
-              value={addName}
-              onChange={(event) => setAddName(event.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none"
-              placeholder="Free coffee"
-            />
+      {!isStaff ? (
+        <section className="sticky top-0 z-10 space-y-3 rounded-2xl border border-white/10 bg-white/10 p-5 shadow-lg shadow-indigo-500/10 backdrop-blur">
+          <div className="flex flex-col gap-1">
+            <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Add reward item</p>
+            <p className="text-lg font-semibold text-white">{locationName ?? "Current location"}</p>
           </div>
+          <div className="grid gap-4 md:grid-cols-3 md:items-end">
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-[0.15em] text-slate-300">Reward Item</label>
+              <input
+                type="text"
+                value={addName}
+                onChange={(event) => setAddName(event.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none"
+                placeholder="Free coffee"
+              />
+            </div>
 
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-[0.15em] text-slate-300">Point Value</label>
-            <input
-              type="number"
-              min={0}
-              step={1}
-              inputMode="numeric"
-              value={addPoints}
-              onChange={(event) => setAddPoints(event.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none"
-              placeholder="25"
-            />
-          </div>
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-[0.15em] text-slate-300">Point Value</label>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                value={addPoints}
+                onChange={(event) => setAddPoints(event.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-indigo-400 focus:outline-none"
+                placeholder="25"
+              />
+            </div>
 
-          <div className="flex flex-col gap-2 md:items-end">
-            <label className="text-xs uppercase tracking-[0.15em] text-slate-300">Upload Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) console.log("Selected file for new reward", file.name);
-              }}
-              className="w-full rounded-lg border border-dashed border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-200 md:w-auto"
-            />
+            <div className="flex flex-col gap-2 md:items-end">
+              <label className="text-xs uppercase tracking-[0.15em] text-slate-300">Upload Image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) console.log("Selected file for new reward", file.name);
+                }}
+                className="w-full rounded-lg border border-dashed border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-200 md:w-auto"
+              />
+            </div>
           </div>
-        </div>
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={handleAddReward}
-            disabled={!addValid || isAdding}
-            className="rounded-xl bg-gradient-to-r from-indigo-500 via-blue-500 to-emerald-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-400/40 disabled:opacity-60"
-          >
-            {isAdding ? "Saving..." : "Save"}
-          </button>
-        </div>
-      </section>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleAddReward}
+              disabled={!addValid || isAdding}
+              className="rounded-xl bg-gradient-to-r from-indigo-500 via-blue-500 to-emerald-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-400/40 disabled:opacity-60"
+            >
+              {isAdding ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">

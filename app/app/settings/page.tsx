@@ -11,6 +11,9 @@ export default async function SettingsPage() {
   if (!session) {
     redirect("/login?redirect=/app/settings");
   }
+  if (session.role === "STAFF") {
+    redirect("/app/rewards");
+  }
 
   const user = await prisma.portalUser.findUnique({
     where: { id: session.userId },

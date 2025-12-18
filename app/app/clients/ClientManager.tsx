@@ -67,9 +67,10 @@ function buildDraft(client: Client): Draft {
 interface Props {
   locationId: string;
   initialClients: Client[];
+  isStaff?: boolean;
 }
 
-export default function ClientManager({ locationId, initialClients }: Props) {
+export default function ClientManager({ locationId, initialClients, isStaff = false }: Props) {
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [drafts, setDrafts] = useState<Record<string, Draft>>(() => {
     return initialClients.reduce<Record<string, Draft>>((map, client) => {
@@ -290,70 +291,72 @@ export default function ClientManager({ locationId, initialClients }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-0 z-10 space-y-3 rounded-2xl border border-white/10 bg-slate-900/80 p-5 shadow-lg shadow-indigo-500/10 backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Add Client</p>
-            <p className="text-sm text-slate-300">Enroll a client into this location instantly.</p>
+      {!isStaff ? (
+        <div className="sticky top-0 z-10 space-y-3 rounded-2xl border border-white/10 bg-slate-900/80 p-5 shadow-lg shadow-indigo-500/10 backdrop-blur">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Add Client</p>
+              <p className="text-sm text-slate-300">Enroll a client into this location instantly.</p>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300">
+              <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+              <span>Active location locked</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300">
-            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-            <span>Active location locked</span>
-          </div>
-        </div>
 
-        <form className="grid grid-cols-1 gap-3 md:grid-cols-2" onSubmit={handleAddClient}>
-          <input
-            value={addFirstName}
-            onChange={(event) => setAddFirstName(event.target.value)}
-            placeholder="First Name"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none"
-          />
-          <input
-            value={addLastName}
-            onChange={(event) => setAddLastName(event.target.value)}
-            placeholder="Last Name"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none"
-          />
-          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus-within:border-indigo-400">
-            <select
-              value={selectedCountry.label}
-              onChange={(event) => {
-                const next = countries.find((country) => country.label === event.target.value);
-                if (next) setSelectedCountry(next);
-              }}
-              className="w-32 rounded-lg border border-white/10 bg-slate-900/70 px-2 py-1 text-sm focus:border-indigo-400 focus:outline-none"
-            >
-              {countries.map((country) => (
-                <option key={country.label} value={country.label}>
-                  {country.flag} {country.dialCode}
-                </option>
-              ))}
-            </select>
+          <form className="grid grid-cols-1 gap-3 md:grid-cols-2" onSubmit={handleAddClient}>
             <input
-              value={addPhoneDisplay}
-              onChange={(event) => handleAddPhoneChange(event.target.value)}
-              placeholder="Phone Number"
-              className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-400 focus:outline-none"
+              value={addFirstName}
+              onChange={(event) => setAddFirstName(event.target.value)}
+              placeholder="First Name"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none"
             />
-          </div>
-          <input
-            value={addEmail}
-            onChange={(event) => setAddEmail(event.target.value)}
-            placeholder="Email"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none"
-          />
-          <div className="md:col-span-2 flex items-center justify-end">
-            <button
-              type="submit"
-              disabled={!addFormValid || adding}
-              className="rounded-xl bg-gradient-to-r from-indigo-500 via-blue-500 to-emerald-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-400/40 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {adding ? "Saving..." : "Save Client"}
-            </button>
-          </div>
-        </form>
-      </div>
+            <input
+              value={addLastName}
+              onChange={(event) => setAddLastName(event.target.value)}
+              placeholder="Last Name"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none"
+            />
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus-within:border-indigo-400">
+              <select
+                value={selectedCountry.label}
+                onChange={(event) => {
+                  const next = countries.find((country) => country.label === event.target.value);
+                  if (next) setSelectedCountry(next);
+                }}
+                className="w-32 rounded-lg border border-white/10 bg-slate-900/70 px-2 py-1 text-sm focus:border-indigo-400 focus:outline-none"
+              >
+                {countries.map((country) => (
+                  <option key={country.label} value={country.label}>
+                    {country.flag} {country.dialCode}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={addPhoneDisplay}
+                onChange={(event) => handleAddPhoneChange(event.target.value)}
+                placeholder="Phone Number"
+                className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-400 focus:outline-none"
+              />
+            </div>
+            <input
+              value={addEmail}
+              onChange={(event) => setAddEmail(event.target.value)}
+              placeholder="Email"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none"
+            />
+            <div className="md:col-span-2 flex items-center justify-end">
+              <button
+                type="submit"
+                disabled={!addFormValid || adding}
+                className="rounded-xl bg-gradient-to-r from-indigo-500 via-blue-500 to-emerald-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:shadow-indigo-400/40 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {adding ? "Saving..." : "Save Client"}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
 
       <div className="space-y-2">
         <input
@@ -397,30 +400,34 @@ export default function ClientManager({ locationId, initialClients }: Props) {
                   <input
                     value={draft.firstName}
                     onChange={(event) => handleDraftChange(client.enrollmentId, "firstName", event.target.value)}
-                    className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm text-white placeholder:text-slate-400 transition focus:border-white/30 focus:outline-none hover:border-white/20"
+                    disabled={isStaff}
+                    className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm text-white placeholder:text-slate-400 transition focus:border-white/30 focus:outline-none hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-70"
                     placeholder="First Name"
                   />
                   <input
                     value={draft.lastName}
                     onChange={(event) => handleDraftChange(client.enrollmentId, "lastName", event.target.value)}
-                    className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm text-white placeholder:text-slate-400 transition focus:border-white/30 focus:outline-none hover:border-white/20"
+                    disabled={isStaff}
+                    className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm text-white placeholder:text-slate-400 transition focus:border-white/30 focus:outline-none hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-70"
                     placeholder="Last Name"
                   />
                   <input
                     value={draft.phoneDisplay}
                     onChange={(event) => handleDraftChange(client.enrollmentId, "phoneDisplay", event.target.value)}
-                    className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm text-white placeholder:text-slate-400 transition focus:border-white/30 focus:outline-none hover:border-white/20"
+                    disabled={isStaff}
+                    className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm text-white placeholder:text-slate-400 transition focus:border-white/30 focus:outline-none hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-70"
                     placeholder="Phone"
                   />
                   <input
                     value={draft.email}
                     onChange={(event) => handleDraftChange(client.enrollmentId, "email", event.target.value)}
-                    className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm text-white placeholder:text-slate-400 transition focus:border-white/30 focus:outline-none hover:border-white/20"
+                    disabled={isStaff}
+                    className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm text-white placeholder:text-slate-400 transition focus:border-white/30 focus:outline-none hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-70"
                     placeholder="Email"
                   />
                 </div>
                 <div className="flex items-center gap-2 self-end md:self-auto">
-                  {isDirty ? (
+                  {isDirty && !isStaff ? (
                     <button
                       type="button"
                       onClick={() => handleSave(client)}
@@ -430,28 +437,30 @@ export default function ClientManager({ locationId, initialClients }: Props) {
                       {savingId === client.enrollmentId ? "Saving..." : "Save"}
                     </button>
                   ) : null}
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(client)}
-                    disabled={deletingId === client.enrollmentId}
-                    className="group flex items-center gap-1 rounded-lg border border-white/10 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:border-rose-300/50 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className="h-4 w-4"
+                  {!isStaff ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(client)}
+                      disabled={deletingId === client.enrollmentId}
+                      className="group flex items-center gap-1 rounded-lg border border-white/10 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:border-rose-300/50 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M9.75 4.5h4.5m-8.25 2.25h12l-.75 12.75a1.5 1.5 0 0 1-1.5 1.5h-7.5a1.5 1.5 0 0 1-1.5-1.5L6 6.75zm2.25 0V3.75A1.5 1.5 0 0 1 9.75 2.25h4.5a1.5 1.5 0 0 1 1.5 1.5V6.75"
-                      />
-                    </svg>
-                    {deletingId === client.enrollmentId ? "Removing" : "Delete"}
-                  </button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        className="h-4 w-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9.75 4.5h4.5m-8.25 2.25h12l-.75 12.75a1.5 1.5 0 0 1-1.5 1.5h-7.5a1.5 1.5 0 0 1-1.5-1.5L6 6.75zm2.25 0V3.75A1.5 1.5 0 0 1 9.75 2.25h4.5a1.5 1.5 0 0 1 1.5 1.5V6.75"
+                        />
+                      </svg>
+                      {deletingId === client.enrollmentId ? "Removing" : "Delete"}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             );
