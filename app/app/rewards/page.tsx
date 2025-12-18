@@ -12,6 +12,7 @@ export default async function RewardsPage() {
   if (!session) {
     redirect("/login?redirect=/app/rewards");
   }
+  const isStaff = session.role === "STAFF";
 
   const locations = await prisma.userLocation.findMany({
     where: { userId: session.userId },
@@ -56,6 +57,7 @@ export default async function RewardsPage() {
         locationId={activeLocation.id}
         locationName={activeLocation.name}
         rewards={rewards}
+        isStaff={isStaff}
       />
     </div>
   );

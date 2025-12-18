@@ -58,6 +58,10 @@ export default async function AppLayout({
   const activeLocation = userLocations.find(({ location }) => location.id === activeLocationId)?.location
     ?? userLocations[0]?.location
     ?? null;
+  const filteredNavItems =
+    session.role === "STAFF"
+      ? navItems.filter((item) => item.href !== "/app/settings")
+      : navItems;
 
   return (
     <div className="relative min-h-screen bg-slate-950 text-slate-100">
@@ -91,7 +95,7 @@ export default async function AppLayout({
           </div>
 
           <nav className="flex flex-1 flex-col gap-2">
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
