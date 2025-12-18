@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getSessionFromRequest } from "@/lib/auth";
+import { createContact } from "@/lib/ghl";
 import prisma from "@/lib/prisma";
 import { getUserLocationIds } from "@/lib/rewards";
 
@@ -95,6 +96,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const accessToken = process.env.GHL_PRIVATE_TOKEN;
+  if (!accessToken) {
+    return NextResponse.json({ error: "GHL access token not configured" }, { status: 500 });
+  }
+
   const body = (await request.json().catch(() => ({}))) as ClientPayload;
   const firstName = body.firstName?.trim();
   const lastName = body.lastName?.trim();
@@ -133,6 +139,23 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  let ghlContactId: string;
+
+  try {
+    const response = await createContact(accessToken, resolved.locationId, {
+      firstName,
+      lastName,
+      email: normalizedEmail,
+      phone: phoneE164,
+    });
+
+    ghlContactId = response.contact.id;
+  } catch (error) {
+    console.error("Failed to create GHL contact", error);
+    const message = error instanceof Error ? error.message : "Unable to create GHL contact";
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
+
   try {
     const { customer, enrollment } = await prisma.$transaction(async (tx) => {
       const customer = existingCustomer
@@ -157,7 +180,7 @@ export async function POST(request: NextRequest) {
         data: {
           customerId: customer.id,
           locationId: resolved.locationId,
-          ghlContactId: customer.id,
+          ghlContactId,
         },
       });
 
