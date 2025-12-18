@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 
 import { getSessionFromCookies } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import LocationForm from "./LocationForm";
 
 export default async function LocationsPage() {
   const session = await getSessionFromCookies();
@@ -72,18 +71,42 @@ export default async function LocationsPage() {
             ))}
             {locations.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-5 text-sm text-slate-300">
-                You don&apos;t have any locations yet. Create one to get started.
+                You don&apos;t have any locations yet. Reach out to us and we&apos;ll add your first location.
               </div>
             ) : null}
           </div>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/10 p-5 shadow-lg shadow-indigo-500/10">
-          <h2 className="text-lg font-semibold text-white">Create location</h2>
-          <p className="mt-2 text-sm text-slate-300">
-            Add a new outpost and it will automatically link to your account.
-          </p>
-          <div className="mt-4 rounded-xl bg-white/5 p-4">
-            <LocationForm />
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-indigo-200">
+              <svg
+                className="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <circle cx="12" cy="12" r="9" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <circle cx="12" cy="8" r="0.5" />
+              </svg>
+            </div>
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Add a location</p>
+                <h2 className="text-lg font-semibold text-white">Connect a new property</h2>
+              </div>
+              <p className="text-sm text-slate-300">
+                To add a new location to your Align Perks account, please reach out to{" "}
+                <a className="text-indigo-200 underline decoration-indigo-300/60 underline-offset-4" href="mailto:admin@getalign.ai">
+                  admin@getalign.ai
+                </a>
+                . We will set up the HighLevel sync for you.
+              </p>
+            </div>
           </div>
         </div>
       </div>
