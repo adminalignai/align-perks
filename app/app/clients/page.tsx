@@ -48,6 +48,7 @@ export default async function ClientsPage() {
     lastName: enrollment.customer.lastName,
     phone: enrollment.customer.phoneE164,
     email: enrollment.customer.email,
+    cachedPoints: enrollment.cachedPoints,
   }));
 
   return (

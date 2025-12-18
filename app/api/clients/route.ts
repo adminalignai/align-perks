@@ -84,6 +84,7 @@ export async function GET(request: NextRequest) {
     lastName: enrollment.customer.lastName,
     phone: enrollment.customer.phoneE164,
     email: enrollment.customer.email,
+    cachedPoints: enrollment.cachedPoints,
   }));
 
   return NextResponse.json({ clients });
@@ -195,6 +196,7 @@ export async function POST(request: NextRequest) {
         lastName: customer.lastName,
         phone: customer.phoneE164,
         email: customer.email,
+        cachedPoints: enrollment.cachedPoints,
       },
     });
   } catch (error) {
