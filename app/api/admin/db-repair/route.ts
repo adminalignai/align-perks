@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
   try {
     await prisma.$executeRawUnsafe(
-      'ALTER TABLE "Invite" ADD COLUMN IF NOT EXISTS "usedByUserId" TEXT;',
+      'ALTER TABLE "Invite" ADD COLUMN IF NOT EXISTS "usedByUserId" TEXT;'
     );
     results.addedColumn = "Success";
   } catch (error) {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
   try {
     await prisma.$executeRawUnsafe(
-      'ALTER TABLE "Invite" DROP CONSTRAINT IF EXISTS "Invite_usedByOwnerId_fkey";',
+      'ALTER TABLE "Invite" DROP CONSTRAINT IF EXISTS "Invite_usedByOwnerId_fkey";'
     );
     results.droppedOldConstraint = "Success";
   } catch (error) {
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   try {
     await prisma.$executeRawUnsafe(
-      'ALTER TABLE "Invite" DROP COLUMN IF EXISTS "usedByOwnerId";',
+      'ALTER TABLE "Invite" DROP COLUMN IF EXISTS "usedByOwnerId";'
     );
     results.droppedOldColumn = "Success";
   } catch (error) {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
   try {
     await prisma.$executeRawUnsafe(
-      'ALTER TABLE "Invite" ADD CONSTRAINT "Invite_usedByUserId_fkey" FOREIGN KEY ("usedByUserId") REFERENCES "PortalUser"("id") ON DELETE SET NULL ON UPDATE CASCADE;',
+      'ALTER TABLE "Invite" ADD CONSTRAINT "Invite_usedByUserId_fkey" FOREIGN KEY ("usedByUserId") REFERENCES "PortalUser"("id") ON DELETE SET NULL ON UPDATE CASCADE;'
     );
     results.addedConstraint = "Success";
   } catch (error) {
