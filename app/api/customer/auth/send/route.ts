@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 
+import { updateContactCustomField } from "@/lib/ghl";
 import prisma from "@/lib/prisma";
 
 interface SendMagicLinkBody {
@@ -34,12 +35,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
   }
 
+  const accessToken = process.env.GHL_PRIVATE_TOKEN;
+  const fieldId = process.env.GHL_SMS_BODY_FIELD_ID;
+
   const customer = await prisma.customer.findUnique({
     where: { phoneE164 },
     select: {
       id: true,
       enrollments: {
-        select: { locationId: true, updatedAt: true, createdAt: true },
+        select: { locationId: true, updatedAt: true, createdAt: true, ghlContactId: true },
         orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
         take: 1,
       },
@@ -50,6 +54,7 @@ export async function POST(request: Request) {
     const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
     const defaultLocationId = customer.enrollments[0]?.locationId ?? null;
+    const enrollment = customer.enrollments[0];
 
     await prisma.customerMagicLink.create({
       data: {
@@ -62,7 +67,17 @@ export async function POST(request: Request) {
 
     const origin = new URL(request.url).origin;
     const magicLinkUrl = `${origin}/customer/verify?token=${token}`;
-    console.log(`[Customer Magic Link] ${magicLinkUrl}`);
+    const message = `Your login link for Align Perks: ${magicLinkUrl}`;
+
+    if (accessToken && fieldId && enrollment?.ghlContactId) {
+      try {
+        await updateContactCustomField(accessToken, enrollment.ghlContactId, fieldId, message);
+      } catch (error) {
+        console.error("Failed to update GHL SMS field for magic link", error);
+      }
+    } else {
+      console.error("Missing GHL configuration or contact ID; skipping magic link SMS field update");
+    }
   }
 
   return NextResponse.json({ success: true });
