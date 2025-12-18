@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getSessionFromRequest } from "@/lib/auth";
+import { sendStandOrderEmail } from "@/lib/email";
 import prisma from "@/lib/prisma";
 
 interface OrderPayload {
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   const userLocation = await prisma.userLocation.findUnique({
     where: { userId_locationId: { userId: session.userId, locationId } },
-    include: { location: { include: { owners: true } } },
+    include: { location: { include: { owners: { include: { owner: true } } } } },
   });
 
   if (!userLocation) {
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const order = await prisma.standOrder.create({
+  let order = await prisma.standOrder.create({
     data: {
       ownerId,
       locationId,
@@ -62,10 +63,28 @@ export async function POST(request: NextRequest) {
 
   const locationName = userLocation.location.name ?? "Unknown location";
   const total = typeof totalPrice === "number" ? totalPrice : quantity * 43.99;
+  const ownerEmail = userLocation.location.owners[0]?.owner.email ?? "Unknown owner email";
 
-  console.log(
-    `Sending email to admin@getalign.ai: Order for ${locationName}, Qty: ${quantity}, Total: ${total}`,
-  );
+  try {
+    await sendStandOrderEmail({
+      restaurantName: locationName,
+      quantity,
+      total,
+      message,
+      ownerEmail,
+      logoUrl,
+    });
+
+    order = await prisma.standOrder.update({
+      where: { id: order.id },
+      data: {
+        status: "EMAILED",
+        emailedAt: new Date(),
+      },
+    });
+  } catch (error) {
+    console.error("Failed to send stand order email", error);
+  }
 
   return NextResponse.json({ success: true, order });
 }
