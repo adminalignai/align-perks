@@ -333,10 +333,13 @@ export default function ClientManager({ locationId, initialClients, isStaff = fa
         return;
       }
 
+      // Capture value to satisfy TypeScript that it is definitely a number
+      const validatedPoints = data.newPoints;
+
       setClients((current) =>
         current.map((client) =>
           client.enrollmentId === purchaseTarget.enrollmentId
-            ? { ...client, cachedPoints: data.newPoints }
+            ? { ...client, cachedPoints: validatedPoints }
             : client,
         ),
       );
