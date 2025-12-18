@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getSessionFromRequest } from "@/lib/auth";
+import { deleteContact, updateContact } from "@/lib/ghl";
 import prisma from "@/lib/prisma";
 
 type UpdatePayload = {
@@ -69,6 +70,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const accessToken = process.env.GHL_PRIVATE_TOKEN;
+  if (!accessToken) {
+    return NextResponse.json({ error: "GHL access token not configured" }, { status: 500 });
+  }
+
   const { id } = await params;
   const authorized = await authorizeEnrollment(session.userId, id);
 
@@ -87,9 +93,12 @@ export async function PATCH(
   }
 
   const updates: Record<string, string | null> = {};
+  const contactUpdates: Record<string, string | null> = {};
 
   if (firstName) updates.firstName = firstName;
   if (lastName) updates.lastName = lastName;
+  if (firstName) contactUpdates.firstName = firstName;
+  if (lastName) contactUpdates.lastName = lastName;
 
   if (phone) {
     const phoneE164 = normalizePhoneNumber(phone);
@@ -104,6 +113,7 @@ export async function PATCH(
       }
 
       updates.phoneE164 = phoneE164;
+      contactUpdates.phone = phoneE164;
     }
   }
 
@@ -112,7 +122,23 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 
-    updates.email = normalizeEmail(email);
+    const normalizedEmail = normalizeEmail(email);
+    updates.email = normalizedEmail;
+    contactUpdates.email = normalizedEmail;
+  }
+
+  if (!authorized.enrollment.ghlContactId) {
+    return NextResponse.json({ error: "Missing GHL contact id for enrollment" }, { status: 500 });
+  }
+
+  try {
+    if (Object.keys(contactUpdates).length > 0) {
+      await updateContact(accessToken, authorized.enrollment.ghlContactId, contactUpdates);
+    }
+  } catch (error) {
+    console.error("Failed to update GHL contact", error);
+    const message = error instanceof Error ? error.message : "Unable to update GHL contact";
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 
   const customer = await prisma.customer.update({
@@ -142,11 +168,28 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const accessToken = process.env.GHL_PRIVATE_TOKEN;
+  if (!accessToken) {
+    return NextResponse.json({ error: "GHL access token not configured" }, { status: 500 });
+  }
+
   const { id } = await params;
   const authorized = await authorizeEnrollment(session.userId, id);
 
   if ("error" in authorized) {
     return authorized.error;
+  }
+
+  if (!authorized.enrollment.ghlContactId) {
+    return NextResponse.json({ error: "Missing GHL contact id for enrollment" }, { status: 500 });
+  }
+
+  try {
+    await deleteContact(accessToken, authorized.enrollment.ghlContactId);
+  } catch (error) {
+    console.error("Failed to delete GHL contact", error);
+    const message = error instanceof Error ? error.message : "Unable to delete GHL contact";
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 
   await prisma.enrollment.delete({ where: { id } });
