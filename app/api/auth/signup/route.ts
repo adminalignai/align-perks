@@ -23,7 +23,11 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as SignupBody;
   const { inviteCode, name, phone, email, password } = body;
 
-  if (!inviteCode || !name || !email || !password) {
+  if (!inviteCode) {
+    return NextResponse.json({ error: "Invite code is required" }, { status: 400 });
+  }
+
+  if (!name || !email || !password) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
@@ -45,11 +49,11 @@ export async function POST(request: Request) {
   }
 
   if (invite.usedAt) {
-    return NextResponse.json({ error: "Invite has already been used" }, { status: 400 });
+    return NextResponse.json({ error: "Invite already used" }, { status: 400 });
   }
 
-  if (invite.expiresAt <= new Date()) {
-    return NextResponse.json({ error: "Invite has expired" }, { status: 400 });
+  if (invite.expiresAt < new Date()) {
+    return NextResponse.json({ error: "Invite expired" }, { status: 400 });
   }
 
   let createdUserId: string | null = null;
