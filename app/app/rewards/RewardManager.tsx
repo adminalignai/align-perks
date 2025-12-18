@@ -43,6 +43,7 @@ export default function RewardManager({ locationId, locationName, rewards, isSta
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isAdding, startAddTransition] = useTransition();
+  const canManageRewards = !isStaff;
 
   const signupReward = useMemo(
     () => items.find((item) => item.type === "SIGNUP_GIFT") ?? null,
@@ -120,6 +121,8 @@ export default function RewardManager({ locationId, locationName, rewards, isSta
   }, [addName, addPoints]);
 
   const handleAddReward = () => {
+    if (!canManageRewards) return;
+
     const { parsed, valid } = parsePoints(addPoints);
     if (!valid || parsed == null) return;
 
@@ -464,7 +467,7 @@ export default function RewardManager({ locationId, locationName, rewards, isSta
 
   return (
     <div className="space-y-6">
-      {!isStaff && (
+      {canManageRewards && (
         <section className="sticky top-0 z-10 space-y-3 rounded-2xl border border-white/10 bg-white/10 p-5 shadow-lg shadow-indigo-500/10 backdrop-blur">
           <div className="flex flex-col gap-1">
             <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Add reward item</p>
