@@ -154,6 +154,7 @@ export async function PATCH(
       lastName: customer.lastName,
       phone: customer.phoneE164,
       email: customer.email,
+      cachedPoints: authorized.enrollment.cachedPoints,
     },
   });
 }

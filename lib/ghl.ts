@@ -62,6 +62,21 @@ export async function updateContact(accessToken: string, contactId: string, data
   return handleResponse<{ contact: { id: string } }>(response);
 }
 
+export async function updateContactCustomField(
+  accessToken: string,
+  contactId: string,
+  fieldId: string,
+  value: unknown,
+) {
+  const response = await fetch(`${BASE_URL}/contacts/${contactId}`, {
+    method: "PUT",
+    headers: buildHeaders(accessToken),
+    body: JSON.stringify({ customFields: [{ id: fieldId, value }] }),
+  });
+
+  return handleResponse<{ contact: { id: string } }>(response);
+}
+
 export async function deleteContact(accessToken: string, contactId: string) {
   const response = await fetch(`${BASE_URL}/contacts/${contactId}`, {
     method: "DELETE",

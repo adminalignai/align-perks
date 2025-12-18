@@ -10,6 +10,7 @@ type Client = {
   lastName: string;
   phone: string;
   email: string | null;
+  cachedPoints: number;
 };
 
 type Draft = {
@@ -91,6 +92,14 @@ export default function ClientManager({ locationId, initialClients, isStaff = fa
   const [adding, setAdding] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [purchaseTarget, setPurchaseTarget] = useState<Client | null>(null);
+  const [purchaseAmount, setPurchaseAmount] = useState("");
+  const [purchaseSubmitting, setPurchaseSubmitting] = useState(false);
+
+  const parsedPurchaseAmount = Number.parseFloat(purchaseAmount);
+  const previewPoints = Number.isFinite(parsedPurchaseAmount) && parsedPurchaseAmount > 0
+    ? Math.floor(parsedPurchaseAmount)
+    : 0;
 
   useEffect(() => {
     setClients(initialClients);
@@ -289,6 +298,60 @@ export default function ClientManager({ locationId, initialClients, isStaff = fa
     }
   };
 
+  const handleConfirmPurchase = async () => {
+    if (!purchaseTarget) return;
+
+    const amount = Number.parseFloat(purchaseAmount);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Enter a valid purchase amount.");
+      return;
+    }
+
+    setPurchaseSubmitting(true);
+    setError(null);
+    setStatus(null);
+
+    try {
+      const response = await fetch("/api/points/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enrollmentId: purchaseTarget.enrollmentId,
+          amount,
+        }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        newPoints?: number;
+        error?: string;
+      };
+
+      if (!response.ok || !data.success || typeof data.newPoints !== "number") {
+        setError(data.error ?? "Unable to log purchase.");
+        return;
+      }
+
+      setClients((current) =>
+        current.map((client) =>
+          client.enrollmentId === purchaseTarget.enrollmentId
+            ? { ...client, cachedPoints: data.newPoints }
+            : client,
+        ),
+      );
+
+      setStatus("Points added");
+      setPurchaseTarget(null);
+      setPurchaseAmount("");
+    } catch (err) {
+      console.error("Failed to log purchase", err);
+      setError("Unexpected error while logging purchase.");
+    } finally {
+      setPurchaseSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {!isStaff ? (
@@ -426,7 +489,23 @@ export default function ClientManager({ locationId, initialClients, isStaff = fa
                     placeholder="Email"
                   />
                 </div>
-                <div className="flex items-center gap-2 self-end md:self-auto">
+                <div className="flex flex-wrap items-center gap-2 self-end md:self-auto">
+                  <span className="rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-3 py-1 text-xs font-semibold text-indigo-100 shadow-inner shadow-indigo-500/10">
+                    {client.cachedPoints} pts
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPurchaseTarget(client);
+                      setPurchaseAmount("");
+                      setStatus(null);
+                      setError(null);
+                    }}
+                    className="flex items-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-50 shadow-inner shadow-emerald-500/20 transition hover:border-emerald-300 hover:bg-emerald-500/25"
+                  >
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-bold text-emerald-200">$</span>
+                    Log Purchase
+                  </button>
                   {isDirty && !isStaff ? (
                     <button
                       type="button"
@@ -467,6 +546,60 @@ export default function ClientManager({ locationId, initialClients, isStaff = fa
           })
         )}
       </div>
+
+      {purchaseTarget ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl shadow-black/30">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Log purchase</p>
+                <h3 className="text-lg font-semibold text-white">
+                  {purchaseTarget.firstName} {purchaseTarget.lastName}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPurchaseTarget(null);
+                  setPurchaseAmount("");
+                  setPurchaseSubmitting(false);
+                }}
+                className="rounded-full border border-white/10 bg-white/5 p-2 text-slate-200 transition hover:border-white/30 hover:bg-white/10"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="space-y-1 text-sm text-slate-200">
+                <span className="block text-xs uppercase tracking-[0.2em] text-indigo-200">Purchase Amount ($)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={purchaseAmount}
+                  onChange={(event) => setPurchaseAmount(event.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none"
+                  placeholder="25.50"
+                />
+              </label>
+
+              <p className="text-sm text-slate-300">
+                Points to add: <span className="font-semibold text-emerald-200">{previewPoints}</span>
+              </p>
+
+              <button
+                type="button"
+                onClick={handleConfirmPurchase}
+                disabled={purchaseSubmitting || !(Number.isFinite(parsedPurchaseAmount) && parsedPurchaseAmount > 0)}
+                className="w-full rounded-xl bg-gradient-to-r from-emerald-500 via-blue-500 to-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:shadow-indigo-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {purchaseSubmitting ? "Logging..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
