@@ -10,6 +10,8 @@ export default function AdminOnboardingPage() {
   const [inviteLink, setInviteLink] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [repairStatus, setRepairStatus] = useState("");
+  const [isRepairing, setIsRepairing] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -46,6 +48,43 @@ export default function AdminOnboardingPage() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRepair = async () => {
+    if (!adminSecret) {
+      setRepairStatus("Please enter the Admin Secret before repairing.");
+      return;
+    }
+
+    setRepairStatus("");
+    setIsRepairing(true);
+
+    try {
+      const response = await fetch("/api/admin/db-repair", {
+        method: "POST",
+        headers: {
+          "x-admin-secret": adminSecret,
+        },
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Request failed");
+      }
+
+      setRepairStatus(
+        "Database repaired successfully. You can now generate invites.",
+      );
+    } catch (repairError) {
+      setRepairStatus(
+        repairError instanceof Error
+          ? repairError.message
+          : "An unexpected error occurred",
+      );
+    } finally {
+      setIsRepairing(false);
     }
   };
 
@@ -132,6 +171,23 @@ export default function AdminOnboardingPage() {
             {isSubmitting ? "Generating..." : "Generate Invite Link"}
           </button>
         </form>
+
+        <hr className="border-slate-800 my-8" />
+
+        <div className="space-y-3">
+          <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Maintenance</p>
+          <button
+            type="button"
+            onClick={handleRepair}
+            className="w-full rounded-xl bg-orange-600 px-4 py-3 font-semibold text-white shadow-lg shadow-orange-600/20 transition hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/40 disabled:cursor-not-allowed disabled:bg-orange-700/50"
+            disabled={isRepairing}
+          >
+            {isRepairing ? "Repairing..." : "Repair Database Schema"}
+          </button>
+          {repairStatus && (
+            <p className="text-sm text-slate-300">{repairStatus}</p>
+          )}
+        </div>
 
         {inviteLink && (
           <div className="space-y-3">
