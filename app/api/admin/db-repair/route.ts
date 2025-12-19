@@ -57,5 +57,53 @@ export async function POST(request: NextRequest) {
         : "Unknown error adding constraint";
   }
 
+  try {
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "PortalUser" ADD COLUMN IF NOT EXISTS "hasCompletedOnboarding" BOOLEAN NOT NULL DEFAULT false;'
+    );
+    results.portalUserHasCompletedOnboarding = "Success";
+  } catch (error) {
+    results.portalUserHasCompletedOnboarding =
+      error instanceof Error
+        ? error.message
+        : "Unknown error adding PortalUser hasCompletedOnboarding column";
+  }
+
+  try {
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "PortalUser" ADD COLUMN IF NOT EXISTS "hasSeenDashboardIntro" BOOLEAN NOT NULL DEFAULT false;'
+    );
+    results.portalUserHasSeenDashboardIntro = "Success";
+  } catch (error) {
+    results.portalUserHasSeenDashboardIntro =
+      error instanceof Error
+        ? error.message
+        : "Unknown error adding PortalUser hasSeenDashboardIntro column";
+  }
+
+  try {
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "OwnerUser" ADD COLUMN IF NOT EXISTS "hasCompletedOnboarding" BOOLEAN NOT NULL DEFAULT false;'
+    );
+    results.ownerUserHasCompletedOnboarding = "Success";
+  } catch (error) {
+    results.ownerUserHasCompletedOnboarding =
+      error instanceof Error
+        ? error.message
+        : "Unknown error adding OwnerUser hasCompletedOnboarding column";
+  }
+
+  try {
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "OwnerUser" ADD COLUMN IF NOT EXISTS "hasSeenDashboardIntro" BOOLEAN NOT NULL DEFAULT false;'
+    );
+    results.ownerUserHasSeenDashboardIntro = "Success";
+  } catch (error) {
+    results.ownerUserHasSeenDashboardIntro =
+      error instanceof Error
+        ? error.message
+        : "Unknown error adding OwnerUser hasSeenDashboardIntro column";
+  }
+
   return NextResponse.json(results);
 }
