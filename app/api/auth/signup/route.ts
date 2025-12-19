@@ -97,7 +97,11 @@ export async function POST(request: Request) {
     }
 
     console.error("Failed to complete signup", error);
-    return NextResponse.json({ error: "Unable to complete signup" }, { status: 500 });
+    // EXPOSE THE REAL ERROR FOR DEBUGGING
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unknown error during signup" },
+      { status: 500 },
+    );
   }
 
   if (!createdUserId) {
